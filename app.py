@@ -1,5 +1,9 @@
 import os
 from PyPDF2 import PdfReader
+import fitz  # PyMuPDF
+from PIL import Image
+import io
+import pytesseract
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import streamlit as st
@@ -19,16 +23,35 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def get_pdf_text(pdf_docs):
     text = ""
-    for pdf in pdf_docs:
-        pdf_reader = PdfReader(pdf)
-        for page in pdf_reader.pages:
-            text += page.extract_text()
+    for pdf_doc in pdf_docs:
+        try:
+            # Intenta leer el documento PDF como un archivo de texto
+            pdf_reader = PdfReader(pdf_doc)
+            for page in pdf_reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+                else:
+                    # Si no hay texto seleccionable, intenta OCR
+                    pdf = fitz.open(stream=pdf_doc.read(), filetype="pdf")
+                    for page_num in range(len(pdf)):
+                        page = pdf.load_page(page_num)
+                        pix = page.get_pixmap()
+                        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                        text += pytesseract.image_to_string(img) + "\n"
+        except Exception as e:
+            st.error(f"Error procesando PDF: {e}")
     return text
 
 # split text into chunks
 
 
 def get_text_chunks(text):
+    # Suponiendo que esta función divide el texto en chunks
+    # Asegúrate de que el texto no esté vacío antes de dividirlo
+    if not text.strip():
+        return []  # Devuelve una lista vacía si el texto está vacío
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=10000, chunk_overlap=1000)
     chunks = splitter.split_text(text)
