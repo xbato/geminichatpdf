@@ -1,9 +1,11 @@
 import os
 from PyPDF2 import PdfReader
-import fitz
+from pdfminer.high_level import extract_text
+from pdf2image import convert_from_path
+import pytesseract
 from PIL import Image
 import io
-import pytesseract
+import tempfile
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import streamlit as st
@@ -19,26 +21,29 @@ os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # read all pdf files and return text
-
-
 def get_pdf_text(pdf_docs):
     text = ""
-    for pdf_doc in pdf_docs:
+    for uploaded_file in pdf_docs:
         try:
-            # Intenta leer el documento PDF como un archivo de texto
-            pdf_reader = PdfReader(pdf_doc)
-            for page in pdf_reader.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text += page_text + "\n"
-                else:
-                    # Si no hay texto seleccionable, intenta OCR
-                    pdf = fitz.open(stream=pdf_doc.read(), filetype="pdf")
-                    for page_num in range(len(pdf)):
-                        page = pdf.load_page(page_num)
-                        pix = page.get_pixmap()
-                        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                        text += pytesseract.image_to_string(img) + "\n"
+            # Lee el contenido del archivo cargado
+            bytes_data = uploaded_file.getvalue()
+            
+            # Extraer texto usando PDFMiner directamente de bytes
+            extracted_text = extract_text(io.BytesIO(bytes_data))
+
+            if extracted_text.strip():
+                text += extracted_text + "\n"
+            else:
+                # Guarda temporalmente el archivo para usar con pdf2image
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                    tmp_file.write(bytes_data)
+                    tmp_file_path = tmp_file.name
+                
+                # Convertir PDF a imágenes (una por página) y aplicar OCR
+                images = convert_from_path(tmp_file_path)
+                for image in images:
+                    text += pytesseract.image_to_string(image) + "\n"
+
         except Exception as e:
             st.error(f"Error procesando PDF: {e}")
     return text
