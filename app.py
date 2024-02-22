@@ -1,6 +1,8 @@
 import os
-from pdfminer.high_level import extract_text
+from PyPDF2 import PdfReader
+import fitz
 from PIL import Image
+import io
 import pytesseract
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -17,13 +19,26 @@ os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # read all pdf files and return text
-# read all pdf files and return text
+
+
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf_doc in pdf_docs:
         try:
-            # Utiliza PDFMiner para extraer texto del PDF
-            text += extract_text(pdf_doc) + "\n"
+            # Intenta leer el documento PDF como un archivo de texto
+            pdf_reader = PdfReader(pdf_doc)
+            for page in pdf_reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+                else:
+                    # Si no hay texto seleccionable, intenta OCR
+                    pdf = fitz.open(stream=pdf_doc.read(), filetype="pdf")
+                    for page_num in range(len(pdf)):
+                        page = pdf.load_page(page_num)
+                        pix = page.get_pixmap()
+                        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                        text += pytesseract.image_to_string(img) + "\n"
         except Exception as e:
             st.error(f"Error procesando PDF: {e}")
     return text
