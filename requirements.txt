@@ -3,7 +3,7 @@ google-generativeai
 python-dotenv
 langchain
 langchain-community
-pdfminer
+pdfminer.six
 pdf2image
 PyPDF2
 chromadb
