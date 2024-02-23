@@ -5,6 +5,7 @@ langchain
 langchain-community
 pdfminer.six
 pdf2image
+poppler-utils
 PyPDF2
 chromadb
 faiss-cpu
