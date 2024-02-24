@@ -170,17 +170,17 @@ def main():
     with st.sidebar:
         st.title("Menu:")
         pdf_docs = st.file_uploader("Sube tu PDF y da click en el botón de subir y procesar", accept_multiple_files=False, type="pdf")
-        if st.button("Subir y procesar"):
-            if pdf_docs is not None:
-                st.session_state.pdf_uploaded = True
-                with st.spinner("Procesando..."):
-                    st.session_state.base64_pdf = base64.b64encode(pdf_docs.getvalue()).decode('utf-8')
-                    st.success("Procesado con éxito")
+        if st.button("Subir y procesar") and pdf_docs is not None:
+            st.session_state.pdf_uploaded = True
+            with st.spinner("Procesando..."):
+                # Convierte el PDF a Base64 para mostrarlo
+                st.session_state.base64_pdf = base64.b64encode(pdf_docs.getvalue()).decode('utf-8')
+                st.success("Procesado con éxito")
 
+    # Mueve la definición de pdf_display dentro de la condición para asegurar que siempre esté definida cuando se use
     if st.session_state.pdf_uploaded and st.session_state.base64_pdf:
         pdf_display = f"""<iframe src="data:application/pdf;base64,{st.session_state.base64_pdf}" width="100%" height="400" type="application/pdf"></iframe>"""
-    st.sidebar.markdown(pdf_display, unsafe_allow_html=True)
-
+        st.sidebar.markdown(pdf_display, unsafe_allow_html=True)
 
     st.title("Tu PDF.AI 🤖")
     st.write("Platica con tus archivos PDFs!")
@@ -189,10 +189,6 @@ def main():
     if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": "Sube tu PDF y pregúntame lo que necesites saber"}]
 
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.write(message["content"])
-
     prompt = st.chat_input()
     if prompt:
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -200,6 +196,7 @@ def main():
         if response:
             full_response = ''.join(response['output_text']) if response and 'output_text' in response else "Lo siento, ocurrió un error."
             st.session_state.messages.append({"role": "assistant", "content": full_response})
+
 
 
 
