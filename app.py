@@ -146,7 +146,7 @@ def main():
             text_chunks = get_text_chunks(raw_text)
             get_vector_store(text_chunks)
 
-       if st.button("Subir y Procesar"):
+        if st.button("Subir y Procesar"):
             # Esta condición asegura que el botón "Subir y Procesar" no mantenga el estado anterior
             st.session_state.pdf_uploaded = False
 
