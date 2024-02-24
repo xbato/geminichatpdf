@@ -1,0 +1,17 @@
+credentials:
+  usernames:
+    jsmith:
+      email: jsmith@example.com
+      name: John Smith
+      password: abc123  # Este es un ejemplo, la contraseña será hasheada automáticamente
+    rbriggs:
+      email: rbriggs@example.com
+      name: Rebecca Briggs
+      password: def456  # Este es un ejemplo, la contraseña será hasheada automáticamente
+cookie:
+  expiry_days: 30
+  key: "un_string_largo_y_aleatorio_aqui"
+  name: "nombre_de_tu_cookie_aqui"
+preauthorized:
+  emails:
+    - melsby@example.com
