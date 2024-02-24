@@ -110,19 +110,35 @@ def clear_chat_history():
 
 
 def user_input(user_question):
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/embedding-001")  # type: ignore
+    try:
+        # Asume que embeddings se obtienen de alguna parte
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")  # type: ignore
 
-    new_db = FAISS.load_local("faiss_index", embeddings)
-    docs = new_db.similarity_search(user_question)
+        # Verifica si el índice ya existe o no, y carga o crea según sea necesario
+        if 'faiss_index_loaded' not in st.session_state or not st.session_state.faiss_index_loaded:
+            # Intenta cargar el índice local. Asegúrate de que "faiss_index" es el nombre correcto del archivo del índice.
+            # Si el archivo no existe o hay un error, esta parte fallará.
+            new_db = FAISS.load_local("faiss_index", embeddings)
+            st.session_state.faiss_index_loaded = True
+            st.session_state.new_db = new_db  # Guarda el índice cargado en el estado de la sesión si necesitas reutilizarlo
+        else:
+            new_db = st.session_state.new_db  # Reutiliza el índice cargado previamente
 
-    chain = get_conversational_chain()
+        docs = new_db.similarity_search(user_question)
 
-    response = chain(
-        {"input_documents": docs, "question": user_question}, return_only_outputs=True, )
+        chain = get_conversational_chain()
 
-    print(response)
-    return response
+        response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
+
+        print(response)
+        return response
+
+    except Exception as e:
+        # Maneja el error adecuadamente. Podrías querer mostrar un mensaje en la UI con st.error()
+        print(f"Error al procesar la entrada del usuario o al cargar el índice de FAISS: {e}")
+        st.error("Ocurrió un error al procesar tu pregunta. Por favor, inténtalo de nuevo.")
+        return None  # O una respuesta de error adecuada
+
 
 # Ejemplo de generación y guardado del índice de FAISS
 def generate_and_save_faiss_index():
