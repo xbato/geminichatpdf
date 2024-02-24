@@ -117,6 +117,15 @@ def user_input(user_question):
 def main():
     st.set_page_config(page_title="Tu PDF.AI", page_icon="🤖")
 
+ # CSS para ocultar el menú hamburguesa y el pie de página "Made with Streamlit"
+    hide_streamlit_style = """
+                <style>
+                #MainMenu {visibility: hidden;}
+                footer {visibility: hidden;}
+                </style>
+                """
+    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+    
     # Variable para almacenar el estado del preview del PDF
     if 'pdf_preview' not in st.session_state:
         st.session_state.pdf_preview = None
