@@ -65,14 +65,6 @@ def get_text_chunks(text):
 # get embeddings for each chunk
 
 
-
-def get_vector_store(chunks):
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/embedding-001")  # type: ignore
-    vector_store = FAISS.from_texts(chunks, embedding=embeddings)
-    vector_store.save_local("faiss_index")
-
-
 def get_conversational_chain():
     prompt_template = """
    Contesta la pregunta con la información mas completa, analizando perfectamente bien el documento que el usuario te proporcionó\n\n
@@ -96,7 +88,16 @@ def clear_chat_history():
     st.session_state.messages = [
         {"role": "assistant", "content": "upload some pdfs and ask me a question"}]
 
+def get_vector_store(chunks):
+    print("Generando embeddings...")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    vector_store = FAISS.from_texts(chunks, embedding=embeddings)
+    print("Guardando el índice FAISS localmente...")
+    vector_store.save_local("faiss_index")
+    print("Índice FAISS creado y guardado.")
 
+
+    
 def user_input(user_question):
     embeddings = GoogleGenerativeAIEmbeddings(
         model="models/embedding-001")  # type: ignore
@@ -116,43 +117,40 @@ def user_input(user_question):
 def main():
     st.set_page_config(page_title="Tu PDF.AI", page_icon="🤖")
 
-    # Inicializar el estado de sesión para el preview del PDF
-    if 'pdf_uploaded' not in st.session_state:
-        st.session_state.pdf_uploaded = False
+    # Variable para almacenar el estado del preview del PDF
+    if 'pdf_preview' not in st.session_state:
         st.session_state.pdf_preview = None
-        st.session_state.last_uploaded_file = None
+
 
     with st.sidebar:
         st.title("Menú:")
-        uploaded_pdf = st.file_uploader("Sube tu archivo PDF y haz click en Subir y Procesar", type=["pdf"], accept_multiple_files=False)
+        pdf_docs = st.file_uploader("Sube tu archivo PDF y haz click en Subir y Procesar", type=["pdf"], accept_multiple_files=False)
 
-        # Verifica si un nuevo archivo ha sido cargado
-        if uploaded_pdf is not None and uploaded_pdf != st.session_state.last_uploaded_file:
-            st.session_state.pdf_uploaded = True
-            st.session_state.last_uploaded_file = uploaded_pdf
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                tmp_file.write(uploaded_pdf.getvalue())
-                tmp_file_path = tmp_file.name
+        # Se asegura que el botón solo se muestra si hay un archivo cargado
+        if pdf_docs is not None:
+            if st.button("Subir y Procesar"):
+                bytes_data = pdf_docs.getvalue()  # Ahora sabemos que pdf_docs no es None
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                    tmp_file.write(bytes_data)
+                    tmp_file_path = tmp_file.name
 
-            try:
-                images = convert_from_path(tmp_file_path)
-                st.session_state.pdf_preview = images[0]
-                st.success("PDF procesado con éxito.")
-            except Exception as e:
-                st.error(f"Error al procesar el PDF: {e}")
+                try:
+                    images = convert_from_path(tmp_file_path)
+                    st.session_state.pdf_preview = images[0]
+                    st.success("PDF procesado con éxito.")
+                except Exception as e:
+                    st.error(f"Error al procesar el PDF: {e}")
 
-            # Procesar texto del PDF como antes
-            raw_text = get_pdf_text([uploaded_pdf])
-            text_chunks = get_text_chunks(raw_text)
-            get_vector_store(text_chunks)
-
-        if st.button("Subir y Procesar"):
-            # Esta condición asegura que el botón "Subir y Procesar" no mantenga el estado anterior
-            st.session_state.pdf_uploaded = False
-
-    # Mostrar el preview del PDF si está disponible
-    if st.session_state.pdf_preview is not None:
-        st.image(st.session_state.pdf_preview, caption='Preview de la primera página del PDF', use_column_width=True)
+    
+    # Extracción de texto y procesamiento de chunks
+    # Este paso se realiza independientemente del resultado de la conversión a imágenes
+    raw_text = get_pdf_text([pdf_docs])
+    text_chunks = get_text_chunks(raw_text)
+    if text_chunks:  # Verifica que haya chunks de texto para procesar
+        print("Preparándose para llamar a get_vector_store")
+        get_vector_store(text_chunks)
+    else:
+        st.write("No se encontró texto para procesar.")
 
     # Main content area for displaying chat messages
     st.title("Tu PDF.AI🤖")
