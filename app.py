@@ -178,7 +178,7 @@ def main():
                     st.success("Procesado con éxito")
 
     if st.session_state.pdf_uploaded and st.session_state.base64_pdf:
-    pdf_display = f"""<iframe src="data:application/pdf;base64,{st.session_state.base64_pdf}" width="100%" height="400" type="application/pdf"></iframe>"""
+        pdf_display = f"""<iframe src="data:application/pdf;base64,{st.session_state.base64_pdf}" width="100%" height="400" type="application/pdf"></iframe>"""
     st.sidebar.markdown(pdf_display, unsafe_allow_html=True)
 
 
