@@ -15,7 +15,6 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
-import base64
 
 load_dotenv()
 os.getenv("GOOGLE_API_KEY")
@@ -64,6 +63,7 @@ def get_text_chunks(text):
     return chunks  # list of strings
 
 # get embeddings for each chunk
+
 
 
 def get_vector_store(chunks):
@@ -116,24 +116,25 @@ def user_input(user_question):
 def main():
     st.set_page_config(page_title="Tu PDF.AI", page_icon="🤖")
 
+    # Variable para almacenar el estado del preview del PDF
+    if 'pdf_preview' not in st.session_state:
+        st.session_state.pdf_preview = None
+
+
     with st.sidebar:
-        st.title("Menu:")
+        st.title("Menú:")
         pdf_docs = st.file_uploader("Sube tu archivo PDF y haz click en Subir y Procesar", type=["pdf"], accept_multiple_files=False)
-        if st.button("Subir y Procesar"):
-            if pdf_docs is not None:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                    tmp_file.write(pdf_docs.getvalue())
-                    tmp_file_path = tmp_file.name
-                
-                with st.spinner("Convirtiendo PDF..."):
-                    try:
-                        # Convertimos el PDF a imágenes utilizando la ruta del archivo temporal
-                        images = convert_from_path(tmp_file_path)
-                        # Mostramos la primera página como imagen
-                        st.image(images[0], caption='Preview de la primera página del PDF', use_column_width=True)
-                        st.success("PDF procesado con éxito.")
-                    except Exception as e:
-                        st.error(f"Error al procesar el PDF: {e}")
+        if st.button("Subir y Procesar") and pdf_docs is not None:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                tmp_file.write(pdf_docs.getvalue())
+                tmp_file_path = tmp_file.name
+
+            try:
+                images = convert_from_path(tmp_file_path)
+                st.session_state.pdf_preview = images[0]
+                st.success("PDF procesado con éxito.")
+            except Exception as e:
+                st.error(f"Error al procesar el PDF: {e}")
 
                 # Aquí puedes continuar con la lógica para procesar el texto del PDF como antes
                 # Debido a que convertimos el pdf_docs a una lista, se mantiene la misma llamada a get_pdf_text
@@ -144,8 +145,12 @@ def main():
     # Main content area for displaying chat messages
     st.title("Tu PDF.AI🤖")
     st.write("Conversa con tu PDF!")
-    st.sidebar.button('Borrar Historial del Chat', on_click=clear_chat_history)
 
+ # Mostrar el preview del PDF en la sección principal si está disponible
+    if st.session_state.pdf_preview is not None:
+        st.image(st.session_state.pdf_preview, caption='Preview de la primera página del PDF', use_column_width=True)
+
+    # Resto de la lógica para el chat
     if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": "Sube tu PDF y hazme preguntas"}]
 
@@ -163,13 +168,12 @@ def main():
             with st.spinner("Thinking..."):
                 response = user_input(prompt)
                 placeholder = st.empty()
-                full_response = ''
-                for item in response.get('output_text', ["Ocurrió un error al procesar tu pregunta. Por favor, inténtalo de nuevo."]):
-                    full_response += item
+                full_response = ''.join(response.get('output_text', ["Ocurrió un error al procesar tu pregunta. Por favor, inténtalo de nuevo."]))
                 placeholder.markdown(full_response)
                 message = {"role": "assistant", "content": full_response}
                 st.session_state.messages.append(message)
 
+    st.sidebar.button('Borrar Historial del Chat', on_click=lambda: st.session_state.messages.clear())
 
 
 if __name__ == "__main__":
