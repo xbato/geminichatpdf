@@ -116,17 +116,22 @@ def user_input(user_question):
 def main():
     st.set_page_config(page_title="Tu PDF.AI", page_icon="🤖")
 
-    # Variable para almacenar el estado del preview del PDF
-    if 'pdf_preview' not in st.session_state:
+    # Inicializar el estado de sesión para el preview del PDF
+    if 'pdf_uploaded' not in st.session_state:
+        st.session_state.pdf_uploaded = False
         st.session_state.pdf_preview = None
-
+        st.session_state.last_uploaded_file = None
 
     with st.sidebar:
         st.title("Menú:")
-        pdf_docs = st.file_uploader("Sube tu archivo PDF y haz click en Subir y Procesar", type=["pdf"], accept_multiple_files=False)
-        if st.button("Subir y Procesar") and pdf_docs is not None:
+        uploaded_pdf = st.file_uploader("Sube tu archivo PDF y haz click en Subir y Procesar", type=["pdf"], accept_multiple_files=False)
+
+        # Verifica si un nuevo archivo ha sido cargado
+        if uploaded_pdf is not None and uploaded_pdf != st.session_state.last_uploaded_file:
+            st.session_state.pdf_uploaded = True
+            st.session_state.last_uploaded_file = uploaded_pdf
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                tmp_file.write(pdf_docs.getvalue())
+                tmp_file.write(uploaded_pdf.getvalue())
                 tmp_file_path = tmp_file.name
 
             try:
@@ -136,11 +141,18 @@ def main():
             except Exception as e:
                 st.error(f"Error al procesar el PDF: {e}")
 
-                # Aquí puedes continuar con la lógica para procesar el texto del PDF como antes
-                # Debido a que convertimos el pdf_docs a una lista, se mantiene la misma llamada a get_pdf_text
-                raw_text = get_pdf_text([pdf_docs])
-                text_chunks = get_text_chunks(raw_text)
-                get_vector_store(text_chunks)
+            # Procesar texto del PDF como antes
+            raw_text = get_pdf_text([uploaded_pdf])
+            text_chunks = get_text_chunks(raw_text)
+            get_vector_store(text_chunks)
+
+       if st.button("Subir y Procesar"):
+            # Esta condición asegura que el botón "Subir y Procesar" no mantenga el estado anterior
+            st.session_state.pdf_uploaded = False
+
+    # Mostrar el preview del PDF si está disponible
+    if st.session_state.pdf_preview is not None:
+        st.image(st.session_state.pdf_preview, caption='Preview de la primera página del PDF', use_column_width=True)
 
     # Main content area for displaying chat messages
     st.title("Tu PDF.AI🤖")
