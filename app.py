@@ -114,7 +114,7 @@ def user_input(user_question):
 
 def main():
     st.set_page_config(
-        page_title="Gemini PDF Chatbot",
+        page_title="Tu PDF.AI",
         page_icon="🤖"
     )
 
@@ -122,25 +122,25 @@ def main():
     with st.sidebar:
         st.title("Menu:")
         pdf_docs = st.file_uploader(
-            "Upload your PDF Files and Click on the Submit & Process Button", accept_multiple_files=True)
-        if st.button("Submit & Process"):
-            with st.spinner("Processing..."):
+            "Sube tu archivo PDF y haz click en Subir y Procesar", accept_multiple_files=True)
+        if st.button("Subir y Procesar"):
+            with st.spinner("Procesando..."):
                 raw_text = get_pdf_text(pdf_docs)
                 text_chunks = get_text_chunks(raw_text)
                 get_vector_store(text_chunks)
                 st.success("Done")
 
     # Main content area for displaying chat messages
-    st.title("Chat with PDF files using Gemini🤖")
-    st.write("Welcome to the chat!")
-    st.sidebar.button('Clear Chat History', on_click=clear_chat_history)
+    st.title("Tu PDF.AI🤖")
+    st.write("Covnersa con tu PDF!")
+    st.sidebar.button('Borrar Historial del Chat', on_click=clear_chat_history)
 
     # Chat input
     # Placeholder for chat messages
 
     if "messages" not in st.session_state.keys():
         st.session_state.messages = [
-            {"role": "assistant", "content": "upload some pdfs and ask me a question"}]
+            {"role": "assistant", "content": "Sube tu PDF y hazme preguntas"}]
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
