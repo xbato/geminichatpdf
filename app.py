@@ -112,31 +112,34 @@ def clear_chat_history():
 def user_input(user_question):
     try:
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")  # type: ignore
-        if 'faiss_index_loaded' not in st.session_state or not st.session_state.faiss_index_loaded:
+        
+        # Asegúrate de que esta parte no falla
+        print("Cargando el índice de FAISS...")
+        if 'faiss_index_loaded' not in st.session_state:
+            # Suponiendo que la función load_local funciona correctamente y el archivo "faiss_index" existe
             new_db = FAISS.load_local("faiss_index", embeddings)
             st.session_state.faiss_index_loaded = True
             st.session_state.new_db = new_db
         else:
             new_db = st.session_state.new_db
 
+        print("Realizando búsqueda de similitud...")
         docs = new_db.similarity_search(user_question)
+
+        print("Obteniendo cadena de conversación...")
         chain = get_conversational_chain()
+
+        print("Ejecutando cadena de conversación...")
         response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
-        
-        print(response)
+
+        print("Respuesta obtenida correctamente.")
         return response
 
     except Exception as e:
-        print(f"Error al procesar la entrada del usuario o al cargar el índice de FAISS: {e}")
+        print(f"Error: {e}")
         st.error("Ocurrió un error al procesar tu pregunta. Por favor, inténtalo de nuevo.")
         return None
 
-
-    except Exception as e:
-        # Maneja el error adecuadamente. Podrías querer mostrar un mensaje en la UI con st.error()
-        print(f"Error al procesar la entrada del usuario o al cargar el índice de FAISS: {e}")
-        st.error("Ocurrió un error al procesar tu pregunta. Por favor, inténtalo de nuevo.")
-        return None  # O una respuesta de error adecuada
 
 
 # Ejemplo de generación y guardado del índice de FAISS
@@ -175,8 +178,9 @@ def main():
                     st.success("Procesado con éxito")
 
     if st.session_state.pdf_uploaded and st.session_state.base64_pdf:
-        pdf_display = f"""<iframe src="data:application/pdf;base64,{st.session_state.base64_pdf}" width="100%" height="400" type="application/pdf"></iframe>"""
-        st.sidebar.markdown(pdf_display, unsafe_allow_html=True)
+    pdf_display = f"""<iframe src="data:application/pdf;base64,{st.session_state.base64_pdf}" width="100%" height="400" type="application/pdf"></iframe>"""
+    st.sidebar.markdown(pdf_display, unsafe_allow_html=True)
+
 
     st.title("Tu PDF.AI 🤖")
     st.write("Platica con tus archivos PDFs!")
