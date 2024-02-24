@@ -111,27 +111,26 @@ def clear_chat_history():
 
 def user_input(user_question):
     try:
-        # Asume que embeddings se obtienen de alguna parte
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")  # type: ignore
-
-        # Verifica si el índice ya existe o no, y carga o crea según sea necesario
         if 'faiss_index_loaded' not in st.session_state or not st.session_state.faiss_index_loaded:
-            # Intenta cargar el índice local. Asegúrate de que "faiss_index" es el nombre correcto del archivo del índice.
-            # Si el archivo no existe o hay un error, esta parte fallará.
             new_db = FAISS.load_local("faiss_index", embeddings)
             st.session_state.faiss_index_loaded = True
-            st.session_state.new_db = new_db  # Guarda el índice cargado en el estado de la sesión si necesitas reutilizarlo
+            st.session_state.new_db = new_db
         else:
-            new_db = st.session_state.new_db  # Reutiliza el índice cargado previamente
+            new_db = st.session_state.new_db
 
         docs = new_db.similarity_search(user_question)
-
         chain = get_conversational_chain()
-
         response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
-
+        
         print(response)
         return response
+
+    except Exception as e:
+        print(f"Error al procesar la entrada del usuario o al cargar el índice de FAISS: {e}")
+        st.error("Ocurrió un error al procesar tu pregunta. Por favor, inténtalo de nuevo.")
+        return None
+
 
     except Exception as e:
         # Maneja el error adecuadamente. Podrías querer mostrar un mensaje en la UI con st.error()
@@ -161,35 +160,28 @@ def load_faiss_index(index_path="faiss_index"):
 def main():
     st.set_page_config(page_title="Tu PDF.AI", page_icon="🤖")
 
-    # Inicializa el estado si es necesario
     if 'pdf_uploaded' not in st.session_state:
         st.session_state.pdf_uploaded = False
-
-    if 'base64_pdf' not in st.session_state:
         st.session_state.base64_pdf = ""
-
-    # Sidebar para subir archivos PDF
+    
     with st.sidebar:
         st.title("Menu:")
         pdf_docs = st.file_uploader("Sube tu PDF y da click en el botón de subir y procesar", accept_multiple_files=False, type="pdf")
-        if st.button("Subir y procesar") and pdf_docs is not None:
-            st.session_state.pdf_uploaded = True
-            with st.spinner("Procesando..."):
-                # Convierte el PDF a Base64 para mostrarlo
-                st.session_state.base64_pdf = base64.b64encode(pdf_docs.getvalue()).decode('utf-8')
-                st.success("Procesado con éxito")
+        if st.button("Subir y procesar"):
+            if pdf_docs is not None:
+                st.session_state.pdf_uploaded = True
+                with st.spinner("Procesando..."):
+                    st.session_state.base64_pdf = base64.b64encode(pdf_docs.getvalue()).decode('utf-8')
+                    st.success("Procesado con éxito")
 
-    # Mostrar el PDF en el sidebar después de procesar y solo si se ha subido
     if st.session_state.pdf_uploaded and st.session_state.base64_pdf:
         pdf_display = f"""<iframe src="data:application/pdf;base64,{st.session_state.base64_pdf}" width="100%" height="400" type="application/pdf"></iframe>"""
         st.sidebar.markdown(pdf_display, unsafe_allow_html=True)
 
-    # Área principal para mostrar mensajes del chat
     st.title("Tu PDF.AI 🤖")
     st.write("Platica con tus archivos PDFs!")
     st.sidebar.button('Borrar Historial', on_click=lambda: clear_chat_history())
 
-    # Chat input y respuestas
     if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": "Sube tu PDF y pregúntame lo que necesites saber"}]
 
@@ -197,24 +189,14 @@ def main():
         with st.chat_message(message["role"]):
             st.write(message["content"])
 
-    if prompt := st.chat_input():
+    prompt = st.chat_input()
+    if prompt:
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.write(prompt)
+        response = user_input(prompt)
+        if response:
+            full_response = ''.join(response['output_text']) if response and 'output_text' in response else "Lo siento, ocurrió un error."
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
 
-        if st.session_state.messages[-1]["role"] != "assistant":
-            with st.chat_message("assistant"):
-                with st.spinner("Thinking..."):
-                    response = user_input(prompt)
-                    placeholder = st.empty()
-                    full_response = ''
-                    for item in response['output_text']:
-                        full_response += item
-                        placeholder.markdown(full_response)
-                    placeholder.markdown(full_response)
-                    if response is not None:
-                        message = {"role": "assistant", "content": full_response}
-                        st.session_state.messages.append(message)
 
 
 if __name__ == "__main__":
