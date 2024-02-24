@@ -126,6 +126,15 @@ def main():
                 """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
     
+    hide_img_fs = '''
+    <style>
+    button[title="View fullscreen"]{
+        visibility: hidden;}
+    </style>
+    '''
+
+    st.markdown(hide_img_fs, unsafe_allow_html=True)
+
     # Variable para almacenar el estado del preview del PDF
     if 'pdf_preview' not in st.session_state:
         st.session_state.pdf_preview = None
