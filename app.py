@@ -124,6 +124,23 @@ def user_input(user_question):
     print(response)
     return response
 
+# Ejemplo de generación y guardado del índice de FAISS
+def generate_and_save_faiss_index():
+    # Suponiendo que embeddings es tu conjunto de datos de embeddings
+    index = faiss.IndexFlatL2(embeddings.shape[1])
+    index.add(embeddings)
+    faiss.write_index(index, "faiss_index")
+    print("Índice de FAISS guardado correctamente.")
+
+# Cargar el índice de FAISS desde una ubicación específica
+def load_faiss_index(index_path="faiss_index"):
+    try:
+        index = faiss.read_index(index_path)
+        return index
+    except RuntimeError as e:
+        print(f"Error al cargar el índice de FAISS: {e}")
+        # Manejo adicional del error según sea necesario
+
 
 def main():
     st.set_page_config(page_title="Tu PDF.AI", page_icon="🤖")
