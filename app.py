@@ -134,12 +134,17 @@ def main():
     with st.sidebar:
         st.title("Menú:")
         pdf_docs = st.file_uploader("Sube tu archivo PDF y haz click en Subir y Procesar", type=["pdf"], accept_multiple_files=False)
-        if st.button("Subir y Procesar"):
-            if pdf_docs is not None:
-                st.session_state.processing_attempted = True
-                process_pdf(pdf_docs)
+
+        if pdf_docs is not None:
+            # Verifica el tamaño del archivo aquí
+            file_size = pdf_docs.size  # Tamaño del archivo en bytes
+            file_size_mb = file_size / (1024 * 1024)  # Convertir a megabytes
+
+            if file_size_mb > 35:
+                st.error("El archivo supera el límite de 35MB. Por favor, carga un archivo más pequeño.")
             else:
-                st.error("Por favor, carga un archivo PDF antes de presionar 'Subir y Procesar'.")
+                if st.button("Subir y Procesar"):
+                    process_pdf(pdf_docs)
 
     # Main content area for displaying chat messages and PDF previews
     st.write("Conversa con tu PDF!")
@@ -172,6 +177,15 @@ def main():
     st.sidebar.button('Borrar Historial del Chat', on_click=clear_chat_history)
 
 def process_pdf(pdf_docs):
+    # Verificación del tamaño del archivo
+    file_size = pdf_docs.size  # Tamaño del archivo en bytes
+    file_size_mb = file_size / (1024 * 1024)  # Convertir a megabytes
+    
+    # Si el archivo es mayor a 35 MB, muestra un mensaje de error y retorna
+    if file_size_mb > 35:
+        st.error("El archivo supera el límite de 35MB. Por favor, carga un archivo más pequeño.")
+        return
+
     try:
         bytes_data = pdf_docs.getvalue()
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
@@ -191,6 +205,7 @@ def process_pdf(pdf_docs):
     else:
         if st.session_state.processing_attempted:
             st.error("No se encontró texto para procesar.")
+
 
 if __name__ == "__main__":
     main()
