@@ -117,7 +117,7 @@ def user_input(user_question):
 def main():
     st.set_page_config(page_title="Tu PDF.AI", page_icon="🤖")
 
- # CSS para ocultar el menú hamburguesa y el pie de página "Made with Streamlit"
+    # CSS para ocultar el menú hamburguesa y el pie de página "Made with Streamlit"
     hide_streamlit_style = """
                 <style>
                 #MainMenu {visibility: hidden;}
@@ -126,59 +126,27 @@ def main():
                 """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
     
-    hide_img_fs = '''
-    <style>
-    button[title="View fullscreen"]{
-        visibility: hidden;}
-    </style>
-    '''
-
-    st.markdown(hide_img_fs, unsafe_allow_html=True)
-
-    # Variable para almacenar el estado del preview del PDF
     if 'pdf_preview' not in st.session_state:
         st.session_state.pdf_preview = None
-
+    if 'processing_attempted' not in st.session_state:
+        st.session_state.processing_attempted = False
 
     with st.sidebar:
         st.title("Menú:")
         pdf_docs = st.file_uploader("Sube tu archivo PDF y haz click en Subir y Procesar", type=["pdf"], accept_multiple_files=False)
+        if st.button("Subir y Procesar"):
+            if pdf_docs is not None:
+                st.session_state.processing_attempted = True
+                process_pdf(pdf_docs)
+            else:
+                st.error("Por favor, carga un archivo PDF antes de presionar 'Subir y Procesar'.")
 
-        # Se asegura que el botón solo se muestra si hay un archivo cargado
-        if pdf_docs is not None:
-            if st.button("Subir y Procesar"):
-                bytes_data = pdf_docs.getvalue()  # Ahora sabemos que pdf_docs no es None
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                    tmp_file.write(bytes_data)
-                    tmp_file_path = tmp_file.name
-
-                try:
-                    images = convert_from_path(tmp_file_path)
-                    st.session_state.pdf_preview = images[0]
-                    st.success("PDF procesado con éxito.")
-                except Exception as e:
-                    st.error(f"Error al procesar el PDF: {e}")
-
-    
-    # Extracción de texto y procesamiento de chunks
-    # Este paso se realiza independientemente del resultado de la conversión a imágenes
-    raw_text = get_pdf_text([pdf_docs])
-    text_chunks = get_text_chunks(raw_text)
-    if text_chunks:  # Verifica que haya chunks de texto para procesar
-        print("Preparándose para llamar a get_vector_store")
-        get_vector_store(text_chunks)
-    else:
-        st.write("No se encontró texto para procesar.")
-
-    # Main content area for displaying chat messages
-    st.title("Tu PDF.AI🤖")
+    # Main content area for displaying chat messages and PDF previews
     st.write("Conversa con tu PDF!")
-
- # Mostrar el preview del PDF en la sección principal si está disponible
     if st.session_state.pdf_preview is not None:
         st.image(st.session_state.pdf_preview, caption='Preview de la primera página del PDF', use_column_width=True)
 
-    # Resto de la lógica para el chat
+    # Resto de la lógica para el chat y el procesamiento de preguntas
     if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": "Sube tu PDF y hazme preguntas"}]
 
@@ -201,8 +169,28 @@ def main():
                 message = {"role": "assistant", "content": full_response}
                 st.session_state.messages.append(message)
 
-    st.sidebar.button('Borrar Historial del Chat', on_click=lambda: st.session_state.messages.clear())
+    st.sidebar.button('Borrar Historial del Chat', on_click=clear_chat_history)
 
+def process_pdf(pdf_docs):
+    try:
+        bytes_data = pdf_docs.getvalue()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+            tmp_file.write(bytes_data)
+            tmp_file_path = tmp_file.name
+
+        images = convert_from_path(tmp_file_path)
+        st.session_state.pdf_preview = images[0]
+        st.success("PDF procesado con éxito.")
+    except Exception as e:
+        st.error(f"Error al procesar el PDF: {e}")
+
+    raw_text = get_pdf_text([pdf_docs])
+    text_chunks = get_text_chunks(raw_text)
+    if text_chunks:
+        get_vector_store(text_chunks)
+    else:
+        if st.session_state.processing_attempted:
+            st.error("No se encontró texto para procesar.")
 
 if __name__ == "__main__":
     main()
