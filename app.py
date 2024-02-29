@@ -219,7 +219,7 @@ def process_pdf(pdf_docs):
         if file_size_mb > 35:
             st.error("El archivo supera el límite de 35MB. Por favor, carga un archivo más pequeño.")
             return
-        
+        logging.info("Procesando archivo PDF.")
     except Exception as e:
         logging.error("Error al procesar el PDF: %s", e)
         st.error(f"Error al procesar el PDF: {e}")
