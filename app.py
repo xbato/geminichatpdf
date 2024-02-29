@@ -15,6 +15,10 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
+import logging
+
+# Configuración básica del logging
+logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 load_dotenv()
 os.getenv("GOOGLE_API_KEY")
@@ -25,6 +29,8 @@ def get_pdf_text(pdf_docs):
     text = ""
     for uploaded_file in pdf_docs:
         try:
+            logging.info("Iniciando extracción de texto del PDF.")
+
             # Lee el contenido del archivo cargado
             bytes_data = uploaded_file.getvalue()
             
@@ -45,6 +51,7 @@ def get_pdf_text(pdf_docs):
                     text += pytesseract.image_to_string(image) + "\n"
 
         except Exception as e:
+            logging.error("Error procesando PDF: %s", e)
             st.error(f"Error procesando PDF: {e}")
     return text
 
@@ -89,29 +96,35 @@ def clear_chat_history():
         {"role": "assistant", "content": "upload some pdfs and ask me a question"}]
 
 def get_vector_store(chunks):
-    print("Generando embeddings...")
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-    vector_store = FAISS.from_texts(chunks, embedding=embeddings)
-    print("Guardando el índice FAISS localmente...")
-    vector_store.save_local("faiss_index")
-    print("Índice FAISS creado y guardado.")
+    try:
+        logging.info("Generando embeddings y guardando el índice FAISS.")
+        print("Generando embeddings...")
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        vector_store = FAISS.from_texts(chunks, embedding=embeddings)
+        print("Guardando el índice FAISS localmente...")
+        vector_store.save_local("faiss_index")
+        print("Índice FAISS creado y guardado.")
+
+    except Exception as e:
+        logging.error("Error generando embeddings o guardando el índice FAISS: %s", e)
+        st.error(f"Error durante la generación de embeddings o al guardar el índice FAISS: {e}")
 
 
     
 def user_input(user_question):
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/embedding-001")  # type: ignore
-
-    new_db = FAISS.load_local("faiss_index", embeddings)
-    docs = new_db.similarity_search(user_question)
-
-    chain = get_conversational_chain()
-
-    response = chain(
-        {"input_documents": docs, "question": user_question}, return_only_outputs=True, )
-
-    print(response)
-    return response
+    try:
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")  # type: ignore
+        new_db = FAISS.load_local("faiss_index", embeddings)
+        docs = new_db.similarity_search(user_question)
+        chain = get_conversational_chain()
+        response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
+        print(response)
+        return response
+    
+    except BlockedPromptException as e:
+        logging.error("Se bloqueó el procesamiento de un documento debido a contenido potencialmente dañino: %s", e)
+        st.error("No se pudo procesar el documento debido a restricciones de seguridad.")
+        return {"output_text": "El contenido no se pudo procesar debido a restricciones de seguridad."}
 
 
 def main():
@@ -177,14 +190,19 @@ def main():
     st.sidebar.button('Borrar Historial del Chat', on_click=clear_chat_history)
 
 def process_pdf(pdf_docs):
-    # Verificación del tamaño del archivo
-    file_size = pdf_docs.size  # Tamaño del archivo en bytes
-    file_size_mb = file_size / (1024 * 1024)  # Convertir a megabytes
-    
-    # Si el archivo es mayor a 35 MB, muestra un mensaje de error y retorna
-    if file_size_mb > 35:
-        st.error("El archivo supera el límite de 35MB. Por favor, carga un archivo más pequeño.")
-        return
+    try:
+        # Verificación del tamaño del archivo
+        file_size = pdf_docs.size  # Tamaño del archivo en bytes
+        file_size_mb = file_size / (1024 * 1024)  # Convertir a megabytes
+        
+        # Si el archivo es mayor a 35 MB, muestra un mensaje de error y retorna
+        if file_size_mb > 35:
+            st.error("El archivo supera el límite de 35MB. Por favor, carga un archivo más pequeño.")
+            return
+        logging.info("Procesando archivo PDF.")
+    except Exception as e:
+        logging.error("Error al procesar el PDF: %s", e)
+        st.error(f"Error al procesar el PDF: {e}")
 
     try:
         bytes_data = pdf_docs.getvalue()
