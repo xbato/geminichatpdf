@@ -1,5 +1,5 @@
-2024-02-29 05:41:16,110 - INFO - Procesando archivo PDF.
-2024-02-29 05:41:17,896 - INFO - Iniciando extracción de texto del PDF.
-2024-02-29 05:41:20,281 - INFO - Generando embeddings y guardando el índice FAISS.
-2024-02-29 05:41:21,166 - INFO - Loading faiss with AVX2 support.
-2024-02-29 05:41:21,255 - INFO - Successfully loaded faiss with AVX2 support.
+2024-02-29 05:43:11,784 - INFO - Procesando archivo PDF.
+2024-02-29 05:43:14,012 - INFO - Iniciando extracción de texto del PDF.
+2024-02-29 05:43:18,080 - INFO - Generando embeddings y guardando el índice FAISS.
+2024-02-29 05:43:19,270 - INFO - Loading faiss with AVX2 support.
+2024-02-29 05:43:19,285 - INFO - Successfully loaded faiss with AVX2 support.
