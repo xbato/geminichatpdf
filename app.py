@@ -31,12 +31,6 @@ console_handler.setLevel(logging.DEBUG)
 console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logging.getLogger('').addHandler(console_handler)
 
-class StreamlitHandler(logging.Handler):
-    def emit(self, record):
-        log_entry = self.format(record)
-        st.write(log_entry)  # o st.error() para errores
-
-logging.getLogger().addHandler(StreamlitHandler())
 logging.getLogger().setLevel(logging.INFO)
 
 load_dotenv()
