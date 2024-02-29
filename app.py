@@ -108,6 +108,7 @@ def get_vector_store(chunks):
     except Exception as e:
         logging.error("Error generando embeddings o guardando el índice FAISS: %s", e)
         st.error(f"Error durante la generación de embeddings o al guardar el índice FAISS: {e}")
+        st.write(f"Detalles del error: {e}")  # Para visualización en Streamlit Cloud
 
 
     
