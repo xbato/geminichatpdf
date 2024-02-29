@@ -18,7 +18,26 @@ from dotenv import load_dotenv
 import logging
 
 # Configuración básica del logging
-logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG,  # Captura todos los niveles de debug hacia arriba
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename='app.log',  # Guarda los logs en un archivo
+    filemode='w'  # Sobrescribe el archivo de log cada vez que se inicia la app
+)
+
+# Para capturar también los logs en la consola, puedes agregar un StreamHandler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logging.getLogger('').addHandler(console_handler)
+
+class StreamlitHandler(logging.Handler):
+    def emit(self, record):
+        log_entry = self.format(record)
+        st.write(log_entry)  # o st.error() para errores
+
+logging.getLogger().addHandler(StreamlitHandler())
+logging.getLogger().setLevel(logging.INFO)
 
 load_dotenv()
 os.getenv("GOOGLE_API_KEY")
