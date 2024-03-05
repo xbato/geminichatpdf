@@ -10,6 +10,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import streamlit as st
 import google.generativeai as genai
+import backoff
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains.question_answering import load_qa_chain
@@ -36,6 +37,30 @@ logging.getLogger().setLevel(logging.INFO)
 load_dotenv()
 os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+
+class GoogleAPIError(Exception):
+    """Excepción para errores al llamar a la API de Google Generative AI."""
+    pass
+
+# Configuración de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Definir una función que maneje los eventos de backoff, opcional pero útil para el logging
+def backoff_hdlr(details):
+    logging.warning("Backing off {wait:0.1f} seconds afters {tries} tries calling function {target} with args {args} and kwargs {kwargs}".format(**details))
+
+
+# Decorador para implementar reintentos con backoff exponencial en la función correcta
+@backoff.on_exception(backoff.expo,
+                      GoogleAPIError,  # Asegúrate de que esta excepción se lanza/captura correctamente en tu código
+                      max_tries=8,
+                      on_backoff=backoff_hdlr)
+def call_chain_with_backoff(docs, user_question):
+    chain = get_conversational_chain()
+    return chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
+
+
 
 # read all pdf files and return text
 def get_pdf_text(pdf_docs):
@@ -123,15 +148,14 @@ def get_vector_store(chunks):
         st.error(f"Error durante la generación de embeddings o al guardar el índice FAISS: {e}")
         st.write(f"Detalles del error: {e}")  # Para visualización en Streamlit Cloud
 
-
     
 def user_input(user_question):
     try:
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")  # type: ignore
         new_db = FAISS.load_local("faiss_index", embeddings)
         docs = new_db.similarity_search(user_question)
-        chain = get_conversational_chain()
-        response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
+        # Utiliza la función decorada con backoff
+        response = call_chain_with_backoff(docs, user_question)
         print(response)
         return response
     
@@ -139,6 +163,11 @@ def user_input(user_question):
         logging.error("Se bloqueó el procesamiento de un documento debido a contenido potencialmente dañino: %s", e)
         st.error("No se pudo procesar el documento debido a restricciones de seguridad.")
         return {"output_text": "El contenido no se pudo procesar debido a restricciones de seguridad."}
+    
+    except GoogleAPIError as e:  # Asegúrate de que esta excepción es la correcta para tu caso
+        logging.error("Error al llamar a Google Generative AI API: %s", e)
+        st.error("Hubo un problema al conectar con Google Generative AI API. Por favor, inténtalo de nuevo.")
+        return {"output_text": "Error al conectar con el servicio de Google Generative AI."}
 
 
 def main():
