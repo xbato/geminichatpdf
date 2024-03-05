@@ -17,6 +17,8 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import logging
+import uuid  # Importante para generar identificadores únicos
+import time
 
 # Configuración básica del logging
 logging.basicConfig(
@@ -45,6 +47,21 @@ class GoogleAPIError(Exception):
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Definir una función para borrar los archivos despues de 1 dia
+def clean_old_faiss_indices():
+    directory = '.'  # Directorio donde se guardan los índices FAISS
+    now = time.time()
+    cutoff = 86400  # 24 horas * 60 minutos * 60 segundos
+
+    for filename in os.listdir(directory):
+        if filename.startswith('faiss_index_'):  # Asegúrate de que este prefijo coincida con cómo nombras los archivos de índice
+            filepath = os.path.join(directory, filename)
+            if os.path.isfile(filepath):
+                file_modified = os.path.getmtime(filepath)
+                if now - file_modified > cutoff:
+                    os.remove(filepath)
+                    print(f'Índice FAISS eliminado: {filename}')
 
 # Definir una función que maneje los eventos de backoff, opcional pero útil para el logging
 def backoff_hdlr(details):
@@ -91,6 +108,7 @@ def get_pdf_text(pdf_docs):
         except Exception as e:
             logging.error("Error procesando PDF: %s", e)
             st.error(f"Error procesando PDF: {e}")
+        pass
     return text
 
 # split text into chunks
@@ -135,26 +153,31 @@ def clear_chat_history():
 
 def get_vector_store(chunks):
     try:
-        logging.info("Generando embeddings y guardando el índice FAISS.")
+        logging.info("Generando embeddings y guardando el índice FAISS específico del usuario.")
         print("Generando embeddings...")
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         vector_store = FAISS.from_texts(chunks, embedding=embeddings)
-        print("Guardando el índice FAISS localmente...")
-        vector_store.save_local("faiss_index")
-        print("Índice FAISS creado y guardado.")
-
+        faiss_index_path = get_user_specific_faiss_index_path()
+        print(f"Guardando el índice FAISS en {faiss_index_path}...")
+        vector_store.save_local(faiss_index_path)
+        print("Índice FAISS creado y guardado específicamente para el usuario.")
     except Exception as e:
         logging.error("Error generando embeddings o guardando el índice FAISS: %s", e)
         st.error(f"Error durante la generación de embeddings o al guardar el índice FAISS: {e}")
-        st.write(f"Detalles del error: {e}")  # Para visualización en Streamlit Cloud
+        st.write(f"Detalles del error: {e}")
 
-    
+# Función modificada para gestionar el índice FAISS por usuario
+def get_user_specific_faiss_index_path():
+    if 'user_id' not in st.session_state:
+        st.session_state.user_id = str(uuid.uuid4())
+    return f"faiss_index_{st.session_state.user_id}"
+
 def user_input(user_question):
     try:
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")  # type: ignore
-        new_db = FAISS.load_local("faiss_index", embeddings)
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        faiss_index_path = get_user_specific_faiss_index_path()
+        new_db = FAISS.load_local(faiss_index_path, embeddings)
         docs = new_db.similarity_search(user_question)
-        # Utiliza la función decorada con backoff
         response = call_chain_with_backoff(docs, user_question)
         print(response)
         return response
@@ -171,6 +194,7 @@ def user_input(user_question):
 
 
 def main():
+    clean_old_faiss_indices()  # Limpieza de índices antiguos al inicio
     st.set_page_config(page_title="Tu PDF.AI", page_icon="🤖")
 
     # CSS para ocultar el menú hamburguesa y el pie de página "Made with Streamlit"
