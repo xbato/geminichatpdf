@@ -193,11 +193,6 @@ def user_input(user_question):
         print(response)
         return response
     
-    except BlockedPromptException as e:
-        logging.error("Se bloqueó el procesamiento de un documento debido a contenido potencialmente dañino: %s", e)
-        st.error("No se pudo procesar el documento debido a restricciones de seguridad.")
-        return {"output_text": "El contenido no se pudo procesar debido a restricciones de seguridad."}
-    
     except GoogleAPIError as e:  # Asegúrate de que esta excepción es la correcta para tu caso
         logging.error("Error al llamar a Google Generative AI API: %s", e)
         st.error("Hubo un problema al conectar con Google Generative AI API. Por favor, inténtalo de nuevo.")
