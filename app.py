@@ -189,23 +189,32 @@ def get_user_specific_faiss_index_path():
 
 def user_input(user_question):
     try:
+        # Asegúrate de que embeddings sea una instancia adecuada de Embeddings.
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        
+        # faiss_index_path debe ser el directorio donde se encuentran el índice y los archivos relacionados.
         faiss_index_path = get_user_specific_faiss_index_path()
-        new_db = FAISS.load_local(faiss_index_path, embeddings)
+
+        # Carga el índice con la deserialización insegura permitida si confías en el origen de los archivos.
+        new_db = FAISS.load_local(folder_path=faiss_index_path,
+                                  embeddings=embeddings,
+                                  allow_dangerous_deserialization=True)
+
         docs = new_db.similarity_search(user_question)
         response = call_chain_with_backoff(docs, user_question)
         print(response)
         return response
     
     except BlockedPromptException as e:
-        logging.error("Se bloqueó el procesamiento de un documento debido a contenido potencialmente dañino: %s", e)
+        logging.error(f"Se bloqueó el procesamiento de un documento debido a contenido potencialmente dañino: {e}")
         st.error("No se pudo procesar el documento debido a restricciones de seguridad.")
         return {"output_text": "El contenido no se pudo procesar debido a restricciones de seguridad."}
     
-    except GoogleAPIError as e:  # Asegúrate de que esta excepción es la correcta para tu caso
-        logging.error("Error al llamar a Google Generative AI API: %s", e)
+    except GoogleAPIError as e:
+        logging.error(f"Error al llamar a Google Generative AI API: {e}")
         st.error("Hubo un problema al conectar con Google Generative AI API. Por favor, inténtalo de nuevo.")
         return {"output_text": "Error al conectar con el servicio de Google Generative AI."}
+
 
 
 def main():
