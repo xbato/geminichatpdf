@@ -41,9 +41,6 @@ load_dotenv()
 os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-class BlockedPromptException(Exception):
-    """Excepción para indicar que se ha bloqueado un prompt por algún motivo."""
-    pass
 
 class GoogleAPIError(Exception):
     """Excepción para errores al llamar a la API de Google Generative AI."""
@@ -190,7 +187,7 @@ def user_input(user_question):
     try:
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         faiss_index_path = get_user_specific_faiss_index_path()
-        new_db = FAISS.load_local(faiss_index_path, embeddings, allow_dangerous_deserialization=True)
+        new_db = FAISS.load_local(faiss_index_path, embeddings)
         docs = new_db.similarity_search(user_question)
         response = call_chain_with_backoff(docs, user_question)
         print(response)

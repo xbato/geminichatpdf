@@ -1,11 +1,8 @@
-2024-03-18 07:19:06,482 - INFO - Procesando archivo PDF.
-2024-03-18 07:19:10,399 - INFO - Iniciando extracción de texto del PDF.
-2024-03-18 07:19:12,542 - INFO - Generando embeddings y guardando el índice FAISS específico del usuario.
-2024-03-18 07:19:13,650 - INFO - Loading faiss with AVX2 support.
-2024-03-18 07:19:13,853 - INFO - Successfully loaded faiss with AVX2 support.
-2024-03-18 07:22:18,738 - INFO - Procesando archivo PDF.
-2024-03-18 07:22:21,642 - INFO - Iniciando extracción de texto del PDF.
-2024-03-18 07:22:23,675 - INFO - Generando embeddings y guardando el índice FAISS específico del usuario.
-2024-03-18 07:22:43,249 - INFO - Procesando archivo PDF.
-2024-03-18 07:22:45,594 - INFO - Iniciando extracción de texto del PDF.
-2024-03-18 07:22:49,706 - INFO - Generando embeddings y guardando el índice FAISS específico del usuario.
+2024-03-18 07:33:52,029 - INFO - Procesando archivo PDF.
+2024-03-18 07:33:53,454 - INFO - Iniciando extracción de texto del PDF.
+2024-03-18 07:33:53,994 - INFO - Generando embeddings y guardando el índice FAISS específico del usuario.
+2024-03-18 07:33:54,911 - INFO - Loading faiss with AVX2 support.
+2024-03-18 07:33:55,046 - INFO - Successfully loaded faiss with AVX2 support.
+2024-03-18 07:37:42,051 - INFO - Procesando archivo PDF.
+2024-03-18 07:37:42,816 - INFO - Iniciando extracción de texto del PDF.
+2024-03-18 07:37:43,397 - INFO - Generando embeddings y guardando el índice FAISS específico del usuario.
