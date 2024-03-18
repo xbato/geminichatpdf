@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 import logging
 import uuid  # Importante para generar identificadores únicos
 import time
+import threading
 
 # Configuración básica del logging
 logging.basicConfig(
@@ -40,6 +41,9 @@ load_dotenv()
 os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
+class BlockedPromptException(Exception):
+    """Excepción para indicar que se ha bloqueado un prompt por algún motivo."""
+    pass
 
 class GoogleAPIError(Exception):
     """Excepción para errores al llamar a la API de Google Generative AI."""
@@ -47,6 +51,16 @@ class GoogleAPIError(Exception):
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def process_heavy_file(file_path):
+    print(f"Procesando archivo: {file_path}")
+    time.sleep(10)  # Simula el tiempo de procesamiento
+    print(f"Archivo procesado: {file_path}")
+
+def start_background_processing(file_path):
+    thread = threading.Thread(target=process_heavy_file, args=(file_path,))
+    thread.start()
+    return thread
 
 # Definir una función para borrar los archivos despues de 1 dia
 def clean_old_faiss_indices():

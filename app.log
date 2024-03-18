@@ -1,14 +1,11 @@
-2024-03-05 05:24:40,785 - INFO - Procesando archivo PDF.
-2024-03-05 05:24:43,840 - INFO - Iniciando extracción de texto del PDF.
-2024-03-05 05:24:45,927 - INFO - Generando embeddings y guardando el índice FAISS específico del usuario.
-2024-03-05 05:24:47,012 - INFO - Loading faiss with AVX2 support.
-2024-03-05 05:24:47,046 - INFO - Successfully loaded faiss with AVX2 support.
-2024-03-05 05:25:03,685 - INFO - Procesando archivo PDF.
-2024-03-05 05:25:04,457 - INFO - Iniciando extracción de texto del PDF.
-2024-03-05 05:25:05,078 - INFO - Generando embeddings y guardando el índice FAISS específico del usuario.
-2024-03-05 05:25:07,431 - INFO - Procesando archivo PDF.
-2024-03-05 05:25:10,460 - INFO - Iniciando extracción de texto del PDF.
-2024-03-05 05:25:12,573 - INFO - Generando embeddings y guardando el índice FAISS específico del usuario.
-2024-03-05 05:25:33,757 - WARNING - Retrying langchain_google_genai.chat_models._chat_with_retry.<locals>._chat_with_retry in 2.0 seconds as it raised InternalServerError: 500 An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting.
-2024-03-05 05:25:36,921 - WARNING - Retrying langchain_google_genai.chat_models._chat_with_retry.<locals>._chat_with_retry in 4.0 seconds as it raised InternalServerError: 500 An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting.
-2024-03-05 05:26:20,180 - WARNING - Retrying langchain_google_genai.chat_models._chat_with_retry.<locals>._chat_with_retry in 2.0 seconds as it raised InternalServerError: 500 An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting.
+2024-03-18 07:19:06,482 - INFO - Procesando archivo PDF.
+2024-03-18 07:19:10,399 - INFO - Iniciando extracción de texto del PDF.
+2024-03-18 07:19:12,542 - INFO - Generando embeddings y guardando el índice FAISS específico del usuario.
+2024-03-18 07:19:13,650 - INFO - Loading faiss with AVX2 support.
+2024-03-18 07:19:13,853 - INFO - Successfully loaded faiss with AVX2 support.
+2024-03-18 07:22:18,738 - INFO - Procesando archivo PDF.
+2024-03-18 07:22:21,642 - INFO - Iniciando extracción de texto del PDF.
+2024-03-18 07:22:23,675 - INFO - Generando embeddings y guardando el índice FAISS específico del usuario.
+2024-03-18 07:22:43,249 - INFO - Procesando archivo PDF.
+2024-03-18 07:22:45,594 - INFO - Iniciando extracción de texto del PDF.
+2024-03-18 07:22:49,706 - INFO - Generando embeddings y guardando el índice FAISS específico del usuario.
