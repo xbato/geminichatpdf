@@ -10,16 +10,12 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import streamlit as st
 import google.generativeai as genai
-import backoff
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import logging
-import uuid  # Importante para generar identificadores únicos
-import time
-import threading
 
 # Configuración básica del logging
 logging.basicConfig(
@@ -40,55 +36,6 @@ logging.getLogger().setLevel(logging.INFO)
 load_dotenv()
 os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-
-
-class GoogleAPIError(Exception):
-    """Excepción para errores al llamar a la API de Google Generative AI."""
-    pass
-
-# Configuración de logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-def process_heavy_file(file_path):
-    print(f"Procesando archivo: {file_path}")
-    time.sleep(10)  # Simula el tiempo de procesamiento
-    print(f"Archivo procesado: {file_path}")
-
-def start_background_processing(file_path):
-    thread = threading.Thread(target=process_heavy_file, args=(file_path,))
-    thread.start()
-    return thread
-
-# Definir una función para borrar los archivos despues de 1 dia
-def clean_old_faiss_indices():
-    directory = '.'  # Directorio donde se guardan los índices FAISS
-    now = time.time()
-    cutoff = 86400  # 24 horas * 60 minutos * 60 segundos
-
-    for filename in os.listdir(directory):
-        if filename.startswith('faiss_index_'):  # Asegúrate de que este prefijo coincida con cómo nombras los archivos de índice
-            filepath = os.path.join(directory, filename)
-            if os.path.isfile(filepath):
-                file_modified = os.path.getmtime(filepath)
-                if now - file_modified > cutoff:
-                    os.remove(filepath)
-                    print(f'Índice FAISS eliminado: {filename}')
-
-# Definir una función que maneje los eventos de backoff, opcional pero útil para el logging
-def backoff_hdlr(details):
-    logging.warning("Backing off {wait:0.1f} seconds afters {tries} tries calling function {target} with args {args} and kwargs {kwargs}".format(**details))
-
-
-# Decorador para implementar reintentos con backoff exponencial en la función correcta
-@backoff.on_exception(backoff.expo,
-                      GoogleAPIError,  # Asegúrate de que esta excepción se lanza/captura correctamente en tu código
-                      max_tries=8,
-                      on_backoff=backoff_hdlr)
-def call_chain_with_backoff(docs, user_question):
-    chain = get_conversational_chain()
-    return chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
-
-
 
 # read all pdf files and return text
 def get_pdf_text(pdf_docs):
@@ -119,7 +66,6 @@ def get_pdf_text(pdf_docs):
         except Exception as e:
             logging.error("Error procesando PDF: %s", e)
             st.error(f"Error procesando PDF: {e}")
-        pass
     return text
 
 # split text into chunks
@@ -164,43 +110,38 @@ def clear_chat_history():
 
 def get_vector_store(chunks):
     try:
-        logging.info("Generando embeddings y guardando el índice FAISS específico del usuario.")
+        logging.info("Generando embeddings y guardando el índice FAISS.")
         print("Generando embeddings...")
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         vector_store = FAISS.from_texts(chunks, embedding=embeddings)
-        faiss_index_path = get_user_specific_faiss_index_path()
-        print(f"Guardando el índice FAISS en {faiss_index_path}...")
-        vector_store.save_local(faiss_index_path)
-        print("Índice FAISS creado y guardado específicamente para el usuario.")
+        print("Guardando el índice FAISS localmente...")
+        vector_store.save_local("faiss_index")
+        print("Índice FAISS creado y guardado.")
+
     except Exception as e:
         logging.error("Error generando embeddings o guardando el índice FAISS: %s", e)
         st.error(f"Error durante la generación de embeddings o al guardar el índice FAISS: {e}")
-        st.write(f"Detalles del error: {e}")
+        st.write(f"Detalles del error: {e}")  # Para visualización en Streamlit Cloud
 
-# Función modificada para gestionar el índice FAISS por usuario
-def get_user_specific_faiss_index_path():
-    if 'user_id' not in st.session_state:
-        st.session_state.user_id = str(uuid.uuid4())
-    return f"faiss_index_{st.session_state.user_id}"
 
+    
 def user_input(user_question):
     try:
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        faiss_index_path = get_user_specific_faiss_index_path()
-        new_db = FAISS.load_local(faiss_index_path, embeddings)
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")  # type: ignore
+        new_db = FAISS.load_local("faiss_index", embeddings)
         docs = new_db.similarity_search(user_question)
-        response = call_chain_with_backoff(docs, user_question)
+        chain = get_conversational_chain()
+        response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
         print(response)
         return response
     
-    except GoogleAPIError as e:  # Asegúrate de que esta excepción es la correcta para tu caso
-        logging.error("Error al llamar a Google Generative AI API: %s", e)
-        st.error("Hubo un problema al conectar con Google Generative AI API. Por favor, inténtalo de nuevo.")
-        return {"output_text": "Error al conectar con el servicio de Google Generative AI."}
+    except BlockedPromptException as e:
+        logging.error("Se bloqueó el procesamiento de un documento debido a contenido potencialmente dañino: %s", e)
+        st.error("No se pudo procesar el documento debido a restricciones de seguridad.")
+        return {"output_text": "El contenido no se pudo procesar debido a restricciones de seguridad."}
 
 
 def main():
-    clean_old_faiss_indices()  # Limpieza de índices antiguos al inicio
     st.set_page_config(page_title="Tu PDF.AI", page_icon="🤖")
 
     # CSS para ocultar el menú hamburguesa y el pie de página "Made with Streamlit"
