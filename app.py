@@ -17,6 +17,11 @@ from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import logging
 
+class BlockedPromptException(Exception):
+    """Excepción para indicar que se ha bloqueado un prompt por algún motivo."""
+    pass
+
+
 # Configuración básica del logging
 logging.basicConfig(
     level=logging.DEBUG,  # Captura todos los niveles de debug hacia arriba
